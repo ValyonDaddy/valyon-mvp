@@ -1,0 +1,57 @@
+[
+  {
+    "id": 1768028901617,
+    "buyer": "andygz16@outlook.com",
+    "seller": "coyot2006salv@gmail.com",
+    "product": "Medicamento X Perros 10mg ",
+    "price": "21",
+    "status": "retenido",
+    "date": "2026-01-10T07:08:21.617Z"
+  },
+  {
+    "id": 1768073604217,
+    "buyer": "andygz16@outlook.com",
+    "seller": "coyot2006salv@gmail.com",
+    "product": "Medicamento X Perros 10mg ",
+    "price": "21",
+    "status": "retenido",
+    "date": "2026-01-10T19:33:24.217Z"
+  },
+  {
+    "id": 1768073811872,
+    "buyer": "andygz16@outlook.com",
+    "seller": "coyot2006salv@gmail.com",
+    "product": "Medicamento X Perros 10mg ",
+    "price": "21",
+    "status": "retenido",
+    "date": "2026-01-10T19:36:51.872Z"
+  },
+  {
+    "id": 1768074373327,
+    "buyer": "coyot2006salv@gmail.com",
+    "seller": "coyot2006salv@gmail.com",
+    "product": "Medicamento X Perros 10mg ",
+    "price": "21",
+    "status": "retenido",
+    "date": "2026-01-10T19:46:13.327Z"
+  },
+  {
+    "id": 1768074434624,
+    "buyer": "andygz16@outlook.com",
+    "seller": "coyot2006salv@gmail.com",
+    "product": "Medicamento X Perros 10mg ",
+    "price": "21",
+    "status": "retenido",
+    "date": "2026-01-10T19:47:14.624Z"
+  },
+  {
+    "id": 1768076195533,
+    "buyer": "coyot2006salv@gmail.com",
+    "seller": "alonzoou@outlook.com",
+    "product": "Airpods mayoreo",
+    "price": "210",
+    "status": "liberado",
+    "date": "2026-01-10T20:16:35.533Z",
+    "releasedAt": "2026-01-10T20:16:53.778Z"
+  }
+]

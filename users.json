@@ -1,0 +1,30 @@
+[
+  {
+    "name": "piloto",
+    "role": "proveedor",
+    "email": "alonzoou@outlook.com",
+    "password": "123456",
+    "date": "2026-01-10T20:14:55.429Z"
+  },
+  {
+    "name": "client ",
+    "role": "cliente",
+    "email": "andygz16@outlook.com",
+    "password": "123456",
+    "date": "2026-01-10T20:15:42.198Z"
+  },
+  {
+    "name": "client ",
+    "role": "cliente",
+    "email": "123@gmail.com",
+    "password": "123456",
+    "date": "2026-01-10T20:15:54.855Z"
+  },
+  {
+    "name": "Marco",
+    "role": "cliente",
+    "email": "coyot2006salv@gmail.com",
+    "password": "123456",
+    "date": "2026-01-10T20:16:17.560Z"
+  }
+]

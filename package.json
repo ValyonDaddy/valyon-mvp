@@ -1,0 +1,11 @@
+{
+  "name": "valyon",
+  "version": "1.0.0",
+  "description": "Valyon Marketplace MVP con pago retenido",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "Valyon",
+  "license": "MIT"
+}

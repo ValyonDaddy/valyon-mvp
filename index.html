@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Valyon — Marketplace Seguro</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: "Inter", system-ui, sans-serif;
+      background: #141414;
+      color: #43e7d1;
+    }
+    main {
+      max-width: 900px;
+      margin: auto;
+      padding: 30px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .card {
+      background: #000;
+      padding: 20px;
+      border-radius: 16px;
+    }
+    label { display: block; margin-top: 10px; }
+    input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      margin-top: 4px;
+    }
+    button {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .primary { background: #077e74; color: #06101c; }
+    ul { padding-left: 0; list-style: none; }
+    li {
+      margin: 10px 0;
+      padding: 10px;
+      background: #0f1626;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+
+<body>
+<main>
+
+<section class="card">
+  <h1>Valyon</h1>
+  <p>
+    Marketplace con pago retenido.<br>
+    Valyon protege comprador y proveedor.
+  </p>
+</section>
+
+<aside class="card">
+
+<h2>Crear cuenta</h2>
+<form id="formSignup">
+
+  <input id="name" placeholder="Nombre" required>
+
+  <select id="role" required>
+    <option value="">Tipo de cuenta</option>
+    <option value="proveedor">Proveedor</option>
+    <option value="cliente">Cliente</option>
+  </select>
+
+  <input id="email" type="email" placeholder="Email" required>
+
+  <input id="pass" type="password" placeholder="Contraseña" minlength="6" required>
+
+  <button type="submit" class="primary">Registrarse</button>
+
+</form>
+
+<p id="status"></p>
+
+<hr>
+
+<h3>Iniciar sesión</h3>
+<form id="loginForm">
+  <input id="loginEmail" type="email" placeholder="Email" required>
+  <input id="loginPass" type="password" placeholder="Contraseña" required>
+  <button class="primary">Entrar</button>
+</form>
+<p id="loginStatus"></p>
+
+<div id="dashboard" style="display:none;">
+  <h3 id="welcome"></h3>
+
+  <div id="sellerPanel" style="display:none;">
+    <h4>Subir producto</h4>
+    <form id="productForm">
+      <input id="productName" placeholder="Producto" required>
+      <input id="productPrice" type="number" placeholder="Precio" required>
+      <button class="primary">Guardar producto</button>
+    </form>
+    <p id="productStatus"></p>
+  </div>
+
+  <div id="buyerPanel" style="display:none;">
+    <h4>Productos</h4>
+    <ul id="productList"></ul>
+  </div>
+
+  <div id="ordersPanel" style="display:none;">
+    <h4>Mis operaciones</h4>
+    <ul id="ordersList"></ul>
+  </div>
+
+  <button onclick="logout()">Cerrar sesión</button>
+</div>
+
+</aside>
+</main>
+
+<script>
+/* ===== SIGNUP ===== */
+document.getElementById("formSignup").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const res = await fetch("/api/signup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: document.getElementById("name").value,
+      role: document.getElementById("role").value,
+      email: document.getElementById("email").value,
+      password: document.getElementById("pass").value
+    })
+  });
+
+  const data = await res.json();
+  document.getElementById("status").textContent =
+    data.success ? "Usuario creado ✅" : data.error || "Error ❌";
+});
+
+
+/* ===== LOGIN ===== */
+loginForm.onsubmit = async e => {
+  e.preventDefault();
+  const r = await fetch("/api/login", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({
+      email:loginEmail.value,
+      password:loginPass.value
+    })
+  });
+  const d = await r.json();
+  if(d.success){
+    localStorage.setItem("user",JSON.stringify(d.user));
+    showDashboard();
+  } else loginStatus.textContent = d.error;
+};
+
+/* ===== DASHBOARD ===== */
+function showDashboard(){
+  const user = JSON.parse(localStorage.getItem("user"));
+  if(!user) return;
+
+  dashboard.style.display="block";
+  welcome.textContent = `Bienvenido ${user.name} — ${user.role}`;
+
+  if(user.role.toLowerCase().includes("proveedor")){
+    sellerPanel.style.display="block";
+  } else {
+    buyerPanel.style.display="block";
+    loadProducts();
+  }
+
+  ordersPanel.style.display="block";
+  loadOrders();
+}
+
+/* ===== PRODUCTS ===== */
+productForm.onsubmit = async e => {
+  e.preventDefault();
+  const user = JSON.parse(localStorage.getItem("user"));
+  await fetch("/api/products",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({
+      id:Date.now(),
+      name:productName.value,
+      price:productPrice.value,
+      owner:user.email
+    })
+  });
+  productStatus.textContent="Producto guardado ✅";
+};
+
+async function loadProducts(){
+  const products = await (await fetch("/api/products")).json();
+  productList.innerHTML="";
+  products.forEach(p=>{
+    productList.innerHTML+=`
+      <li>
+        <b>${p.name}</b><br>
+        $${p.price}<br>
+        <button onclick="buyProduct(${p.id})">Comprar</button>
+      </li>`;
+  });
+}
+
+/* ===== BUY ===== */
+async function buyProduct(id){
+  const user = JSON.parse(localStorage.getItem("user"));
+  const products = await (await fetch("/api/products")).json();
+  const p = products.find(x=>x.id===id);
+
+  await fetch("/api/orders",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({
+      buyer:user.email,
+      seller:p.owner,
+      product:p.name,
+      price:p.price
+    })
+  });
+
+  alert(`Pago retenido 🛡️ $${p.price}`);
+  loadOrders();
+}
+
+/* ===== ORDERS + LIBERAR PAGO ===== */
+async function loadOrders(){
+  const user = JSON.parse(localStorage.getItem("user"));
+  const orders = await (await fetch("/api/orders")).json();
+  ordersList.innerHTML="";
+
+  const mine = orders.filter(o =>
+    user.role.toLowerCase().includes("proveedor")
+      ? o.seller===user.email
+      : o.buyer===user.email
+  );
+
+  if(!mine.length){
+    ordersList.innerHTML="<li>No hay operaciones aún</li>";
+    return;
+  }
+
+  mine.forEach(o=>{
+    ordersList.innerHTML+=`
+      <li>
+        <b>${o.product}</b><br>
+        $${o.price} — ${o.status}
+        ${user.role.toLowerCase().includes("proveedor") && o.status==="retenido"
+          ? `<br><button onclick="releasePayment(${o.id})">Liberar pago</button>`
+          : ""}
+      </li>`;
+  });
+}
+
+async function releasePayment(orderId){
+  await fetch("/api/orders/release",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({ orderId })
+  });
+  alert("Pago liberado al proveedor ✅");
+  loadOrders();
+}
+
+/* ===== LOGOUT ===== */
+function logout(){
+  localStorage.clear();
+  location.reload();
+}
+
+showDashboard();
+</script>
+
+</body>
+</html>
