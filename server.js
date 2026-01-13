@@ -1,21 +1,53 @@
-console.log("🔥 SERVER.JS CORRECTO CARGADO 🔥");
+console.log("🔥 SERVER.JS SQLITE CARGADO 🔥");
 
 const express = require("express");
-const fs = require("fs");
 const path = require("path");
+const sqlite3 = require("sqlite3").verbose();
 
 const app = express();
 app.use(express.json());
 
-// ================== ARCHIVOS ==================
-const USERS_FILE = path.join(__dirname, "users.json");
-const PRODUCTS_FILE = path.join(__dirname, "products.json");
-const ORDERS_FILE = path.join(__dirname, "orders.json");
+// ================== DATABASE ==================
+const db = new sqlite3.Database(
+  path.join(__dirname, "valyon.db")
+);
 
-// Crear archivos si no existen
-if (!fs.existsSync(USERS_FILE)) fs.writeFileSync(USERS_FILE, "[]");
-if (!fs.existsSync(PRODUCTS_FILE)) fs.writeFileSync(PRODUCTS_FILE, "[]");
-if (!fs.existsSync(ORDERS_FILE)) fs.writeFileSync(ORDERS_FILE, "[]");
+// Crear tablas si no existen
+db.serialize(() => {
+  db.run(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
+      role TEXT,
+      email TEXT UNIQUE,
+      password TEXT,
+      created_at TEXT
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS products (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
+      price REAL,
+      owner TEXT,
+      created_at TEXT
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      buyer TEXT,
+      seller TEXT,
+      product TEXT,
+      price REAL,
+      status TEXT,
+      created_at TEXT,
+      released_at TEXT
+    )
+  `);
+});
 
 // ================== FRONTEND ==================
 app.get("/", (req, res) => {
@@ -30,22 +62,17 @@ app.post("/api/signup", (req, res) => {
     return res.status(400).json({ error: "Datos incompletos" });
   }
 
-  const users = JSON.parse(fs.readFileSync(USERS_FILE, "utf-8"));
-
-  if (users.find(u => u.email === email)) {
-    return res.status(400).json({ error: "Usuario ya existe" });
-  }
-
-  users.push({
-    name,
-    role,
-    email,
-    password, // texto plano SOLO MVP
-    date: new Date().toISOString()
-  });
-
-  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-  res.json({ success: true });
+  db.run(
+    `INSERT INTO users (name, role, email, password, created_at)
+     VALUES (?, ?, ?, ?, ?)`,
+    [name, role, email, password, new Date().toISOString()],
+    function (err) {
+      if (err) {
+        return res.status(400).json({ error: "Usuario ya existe" });
+      }
+      res.json({ success: true });
+    }
+  );
 });
 
 // ================== LOGIN ==================
@@ -56,25 +83,28 @@ app.post("/api/login", (req, res) => {
     return res.status(400).json({ error: "Credenciales incompletas" });
   }
 
-  const users = JSON.parse(fs.readFileSync(USERS_FILE, "utf-8"));
-  const user = users.find(u => u.email === email);
+  db.get(
+    `SELECT name, role, email, password FROM users WHERE email = ?`,
+    [email],
+    (err, user) => {
+      if (!user) {
+        return res.status(401).json({ error: "Usuario no existe" });
+      }
 
-  if (!user) {
-    return res.status(401).json({ error: "Usuario no existe" });
-  }
+      if (user.password !== password) {
+        return res.status(401).json({ error: "Contraseña incorrecta" });
+      }
 
-  if (user.password !== password) {
-    return res.status(401).json({ error: "Contraseña incorrecta" });
-  }
-
-  res.json({
-    success: true,
-    user: {
-      name: user.name,
-      role: user.role,
-      email: user.email
+      res.json({
+        success: true,
+        user: {
+          name: user.name,
+          role: user.role,
+          email: user.email
+        }
+      });
     }
-  });
+  );
 });
 
 // ================== PRODUCTS ==================
@@ -85,22 +115,18 @@ app.post("/api/products", (req, res) => {
     return res.status(400).json({ error: "Datos incompletos" });
   }
 
-  const products = JSON.parse(fs.readFileSync(PRODUCTS_FILE, "utf-8"));
-
-  products.push({
-    id: Date.now(),
-    name,
-    price,
-    owner,
-    date: new Date().toISOString()
-  });
-
-  fs.writeFileSync(PRODUCTS_FILE, JSON.stringify(products, null, 2));
-  res.json({ success: true });
+  db.run(
+    `INSERT INTO products (name, price, owner, created_at)
+     VALUES (?, ?, ?, ?)`,
+    [name, price, owner, new Date().toISOString()],
+    () => res.json({ success: true })
+  );
 });
 
 app.get("/api/products", (req, res) => {
-  res.json(JSON.parse(fs.readFileSync(PRODUCTS_FILE, "utf-8")));
+  db.all(`SELECT * FROM products`, [], (err, rows) => {
+    res.json(rows);
+  });
 });
 
 // ================== ORDERS ==================
@@ -111,24 +137,18 @@ app.post("/api/orders", (req, res) => {
     return res.status(400).json({ error: "Datos incompletos" });
   }
 
-  const orders = JSON.parse(fs.readFileSync(ORDERS_FILE, "utf-8"));
-
-  orders.push({
-    id: Date.now(),
-    buyer,
-    seller,
-    product,
-    price,
-    status: "retenido",
-    date: new Date().toISOString()
-  });
-
-  fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2));
-  res.json({ success: true });
+  db.run(
+    `INSERT INTO orders (buyer, seller, product, price, status, created_at)
+     VALUES (?, ?, ?, ?, 'retenido', ?)`,
+    [buyer, seller, product, price, new Date().toISOString()],
+    () => res.json({ success: true })
+  );
 });
 
 app.get("/api/orders", (req, res) => {
-  res.json(JSON.parse(fs.readFileSync(ORDERS_FILE, "utf-8")));
+  db.all(`SELECT * FROM orders`, [], (err, rows) => {
+    res.json(rows);
+  });
 });
 
 // ================== RELEASE PAYMENT ==================
@@ -139,22 +159,19 @@ app.post("/api/orders/release", (req, res) => {
     return res.status(400).json({ error: "orderId requerido" });
   }
 
-  const orders = JSON.parse(fs.readFileSync(ORDERS_FILE, "utf-8"));
-  const order = orders.find(o => o.id === orderId);
-
-  if (!order) {
-    return res.status(404).json({ error: "Orden no encontrada" });
-  }
-
-  order.status = "liberado";
-  order.releasedAt = new Date().toISOString();
-
-  fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2));
-  res.json({ success: true });
+  db.run(
+    `UPDATE orders
+     SET status = 'liberado', released_at = ?
+     WHERE id = ?`,
+    [new Date().toISOString(), orderId],
+    function () {
+      res.json({ success: true });
+    }
+  );
 });
 
 // ================== SERVER ==================
-app.listen(3000, () => {
-  console.log("🚀 Valyon activo en http://localhost:3000");
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Valyon activo en http://localhost:${PORT}`);
 });
-
